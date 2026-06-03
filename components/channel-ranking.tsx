@@ -30,7 +30,7 @@ export function ChannelRanking({
     >
       {/* Header */}
       <div className="mb-1 flex items-center gap-2 text-teal-400">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="8" y1="6" x2="21" y2="6" />
           <line x1="8" y1="12" x2="21" y2="12" />
           <line x1="8" y1="18" x2="21" y2="18" />
@@ -49,19 +49,20 @@ export function ChannelRanking({
           <Reorder.Item
             key={ch.name}
             value={ch}
-            className="cursor-grab active:cursor-grabbing"
+            aria-label={`${ch.name}, posizione ${i + 1}. Trascina per riordinare.`}
+            className="cursor-grab rounded-xl active:cursor-grabbing"
           >
             <motion.div
               layout
               className="flex items-start gap-3 rounded-xl border border-neutral-800 bg-neutral-950/60 px-4 py-3 transition-colors hover:border-neutral-700"
             >
               {/* Rank */}
-              <span className="mt-0.5 font-mono text-[11px] text-neutral-600 w-4 shrink-0">
+              <span aria-hidden="true" className="mt-0.5 font-mono text-[11px] text-neutral-500 w-4 shrink-0">
                 {i + 1}.
               </span>
 
               {/* Emoji */}
-              <span className="mt-0.5 text-base shrink-0">{ch.emoji}</span>
+              <span aria-hidden="true" className="mt-0.5 text-base shrink-0">{ch.emoji}</span>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
@@ -74,13 +75,14 @@ export function ChannelRanking({
                   </span>
                 </div>
                 <p className="mt-1 font-mono text-xs leading-relaxed text-neutral-500">{ch.reason}</p>
-                <p className="mt-1 font-mono text-[10px] text-neutral-600">
+                <p className="mt-1 font-mono text-[10px] text-neutral-500">
                   min. €{ch.minBudget.toLocaleString('it-IT')}/mese
                 </p>
               </div>
 
               {/* Drag handle */}
               <svg
+                aria-hidden="true"
                 className="mt-1 shrink-0 text-neutral-700"
                 width="12"
                 height="12"

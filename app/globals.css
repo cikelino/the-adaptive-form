@@ -24,6 +24,25 @@ body {
   background-attachment: fixed;
 }
 
+/* Focus visibile solo per chi naviga da tastiera (non al click del mouse) */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Rispetta la preferenza di sistema per ridurre il movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Scrollbar discrete per le aree con overflow interno */
 .scroll-area {
   scrollbar-width: thin;
@@ -67,6 +86,15 @@ input[type="range"]::-webkit-slider-thumb {
 
 input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.3);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 7px rgba(45, 212, 191, 0.35);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.5);
 }
 
 input[type="range"]::-moz-range-thumb {

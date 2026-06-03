@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PlanCanvas } from '@/components/plan-canvas';
@@ -17,7 +17,13 @@ const SUGGESTIONS = [
 
 export default function Page() {
   const [chatKey, setChatKey] = useState(0);
-  return <Chat key={chatKey} onReset={() => setChatKey((k) => k + 1)} />;
+  return (
+    // reducedMotion="user" → tutte le animazioni Framer rispettano la
+    // preferenza di sistema dell'utente (accessibilità).
+    <MotionConfig reducedMotion="user">
+      <Chat key={chatKey} onReset={() => setChatKey((k) => k + 1)} />
+    </MotionConfig>
+  );
 }
 
 // Chip mostrato nella chat quando l'AI genera/aggiorna un elemento del piano.
@@ -94,6 +100,16 @@ function Chat({ onReset }: { onReset: () => void }) {
   const scrollToBottom = () =>
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
 
+  // Chiusura del drawer mobile con il tasto Escape (accessibilità da tastiera).
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const send = (text: string) => {
     if (!text.trim()) return;
@@ -105,23 +121,43 @@ function Chat({ onReset }: { onReset: () => void }) {
   const isBusy = status === 'submitted' || status === 'streaming';
 
   const commandBar = (
-    <div className="w-full max-w-xl">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        send(input);
+      }}
+      className="w-full max-w-xl"
+    >
       <div className="group relative">
         <div className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-r from-teal-500/0 via-teal-500/30 to-teal-500/0 opacity-0 blur transition-opacity duration-300 group-focus-within:opacity-100" />
         <div className="relative flex items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-3 backdrop-blur transition-colors focus-within:border-teal-500/50">
-          <span className="font-mono text-teal-400">›</span>
+          <span aria-hidden="true" className="font-mono text-teal-400">›</span>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send(input)}
             placeholder="Scrivi un messaggio…"
+            aria-label="Messaggio per l'assistente"
             disabled={isBusy}
-            className="w-full bg-transparent font-mono text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none disabled:opacity-50"
+            className="w-full bg-transparent font-mono text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none disabled:opacity-50"
           />
-          {isBusy && <span className="h-2 w-2 animate-pulse rounded-full bg-teal-400" />}
+          {isBusy ? (
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-teal-400" />
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              aria-label="Invia messaggio"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 transition-all hover:bg-teal-500/25 active:scale-90 disabled:opacity-30 disabled:hover:bg-teal-500/15"
+            >
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
-    </div>
+    </form>
   );
 
   // ── Stato iniziale (hero) ───────────────────────────────────────────────────
@@ -156,7 +192,7 @@ function Chat({ onReset }: { onReset: () => void }) {
               <button
                 key={s}
                 onClick={() => send(s)}
-                className="rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 font-mono text-xs text-neutral-400 transition-colors hover:border-teal-500/40 hover:text-teal-300"
+                className="rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 font-mono text-xs text-neutral-400 transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-500/40 hover:text-teal-300 active:translate-y-0 active:scale-95"
               >
                 {s}
               </button>
@@ -178,10 +214,10 @@ function Chat({ onReset }: { onReset: () => void }) {
           <div className="flex shrink-0 items-center justify-between py-4">
             <button
               onClick={onReset}
-              className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 px-3.5 py-2 font-mono text-xs text-neutral-300 backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-200"
+              className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 px-3.5 py-2 font-mono text-xs text-neutral-300 backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-200 active:scale-[0.97]"
             >
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-teal-500/10 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
-              <svg className="transition-transform group-hover:rotate-90" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <span aria-hidden="true" className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-teal-500/10 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+              <svg aria-hidden="true" className="transition-transform group-hover:rotate-90" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -191,9 +227,10 @@ function Chat({ onReset }: { onReset: () => void }) {
             {/* Apri piano (mobile) */}
             <button
               onClick={() => setDrawerOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/10 px-3.5 py-2 font-mono text-xs text-teal-300 backdrop-blur transition-colors hover:bg-teal-500/20 lg:hidden"
+              aria-label={`Apri il piano${slots.length > 0 ? ` (${slots.length} elementi)` : ''}`}
+              className="flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/10 px-3.5 py-2 font-mono text-xs text-teal-300 backdrop-blur transition-all hover:bg-teal-500/20 active:scale-[0.97] lg:hidden"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
                 <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
               </svg>
@@ -202,7 +239,12 @@ function Chat({ onReset }: { onReset: () => void }) {
           </div>
 
           {/* Messaggi (scroll interno) */}
-          <div ref={scrollRef} className="scroll-area flex-1 space-y-6 overflow-y-auto pb-6 pr-1">
+          <div
+            ref={scrollRef}
+            role="log"
+            aria-label="Conversazione con l'assistente"
+            className="scroll-area flex-1 space-y-6 overflow-y-auto pb-6 pr-1"
+          >
             {messages.map((m) => (
               <div key={m.id}>
                 {m.role === 'user' ? (
@@ -250,10 +292,10 @@ function Chat({ onReset }: { onReset: () => void }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.9 }}
                     onClick={scrollToBottom}
-                    className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-lg backdrop-blur transition-colors hover:border-teal-500/50 hover:text-teal-300"
-                    aria-label="Vai in fondo"
+                    className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-lg backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-300 active:scale-90"
+                    aria-label="Vai in fondo alla conversazione"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
                   </motion.button>
@@ -280,8 +322,11 @@ function Chat({ onReset }: { onReset: () => void }) {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 lg:hidden"
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+            <div aria-hidden="true" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Il tuo piano di lancio"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

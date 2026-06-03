@@ -70,7 +70,7 @@ export function PlanCanvas({
               className="rounded-lg border border-neutral-800 p-1.5 text-neutral-500 transition-colors hover:text-neutral-300 lg:hidden"
               aria-label="Chiudi"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>

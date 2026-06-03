@@ -29,7 +29,7 @@ export function BudgetSlider({
     >
       {/* Header */}
       <div className="mb-1 flex items-center gap-2 text-teal-400">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="6" width="20" height="12" rx="2" />
           <circle cx="12" cy="12" r="2" />
         </svg>
@@ -52,9 +52,11 @@ export function BudgetSlider({
         step={500}
         value={value}
         onChange={(e) => update(Number(e.target.value))}
+        aria-label="Budget di lancio"
+        aria-valuetext={`${currency}${value.toLocaleString('it-IT')}`}
         className="mt-4 w-full"
       />
-      <div className="mt-1.5 flex justify-between font-mono text-[10px] text-neutral-600">
+      <div className="mt-1.5 flex justify-between font-mono text-[10px] text-neutral-500">
         <span>{currency}{MIN.toLocaleString('it-IT')}</span>
         <span>{currency}{MAX.toLocaleString('it-IT')}</span>
       </div>

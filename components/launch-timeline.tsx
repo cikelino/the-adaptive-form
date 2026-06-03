@@ -22,7 +22,7 @@ export function LaunchTimeline({ milestones }: TimelineArgs) {
     >
       {/* Header */}
       <div className="mb-1 flex items-center gap-2 text-teal-400">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
@@ -42,15 +42,16 @@ export function LaunchTimeline({ milestones }: TimelineArgs) {
               <button
                 key={i}
                 onClick={() => setActive(isActive ? null : i)}
+                aria-expanded={isActive}
                 className="relative flex w-full items-start gap-3 rounded-lg px-1 py-2 text-left transition-colors hover:bg-neutral-800/30"
               >
                 {/* Dot */}
-                <span className={`relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-neutral-950 ${c.dot}`} />
+                <span aria-hidden="true" className={`relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-neutral-950 ${c.dot}`} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className={`font-mono text-[10px] uppercase tracking-wider ${c.text}`}>{m.week}</span>
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-neutral-600">· {m.phase}</span>
+                    <span className="font-mono text-[9px] uppercase tracking-wider text-neutral-500">· {m.phase}</span>
                   </div>
                   <p className="font-mono text-sm text-neutral-100">{m.title}</p>
                   <motion.div
