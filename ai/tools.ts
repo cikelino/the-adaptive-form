@@ -55,6 +55,22 @@ export const personaArgsSchema = z.object({
 
 export type PersonaArgs = z.infer<typeof personaArgsSchema>;
 
+// ── ValueProposition ─────────────────────────────────────────────────────────
+
+export const valuePropArgsSchema = z.object({
+  headline: z.string().describe('La proposta di valore in una frase incisiva, es. "Allenamenti da 15 minuti pensati per mamme senza tempo"'),
+  alternative: z.string().describe('Cosa usano/fanno oggi i clienti al posto tuo (lo status quo), es. "Abbonamenti in palestra mai usati"'),
+  problem: z.string().describe('Il problema concreto che risolvi (1 frase)'),
+  solution: z.string().describe('Cosa offri concretamente per risolverlo (1 frase)'),
+  differentiators: z
+    .array(z.string())
+    .min(2)
+    .max(4)
+    .describe('I motivi per cui sceglierti invece delle alternative (max 8 parole ciascuno)'),
+});
+
+export type ValuePropArgs = z.infer<typeof valuePropArgsSchema>;
+
 // ── LaunchTimeline ───────────────────────────────────────────────────────────
 
 const milestoneSchema = z.object({
@@ -108,9 +124,16 @@ export const tools = {
     }),
   }),
 
+  renderValueProp: tool({
+    description:
+      "Mostra la proposta di valore del progetto: problema, soluzione e perché sceglierti rispetto alle alternative. Chiamare DOPO aver definito il cliente-tipo e PRIMA di parlare di canali/budget: senza un'offerta chiara non si possono scegliere i canali.",
+    inputSchema: valuePropArgsSchema,
+    execute: async (args) => args,
+  }),
+
   renderChannelRanking: tool({
     description:
-      'Mostra una classifica interattiva dei canali di marketing consigliati in base al tipo di progetto. Chiamare dopo aver capito settore e target.',
+      'Mostra una classifica interattiva dei canali di marketing consigliati in base al tipo di progetto. Chiamare dopo aver capito settore, target e proposta di valore.',
     inputSchema: channelRankingArgsSchema,
     execute: async ({ channels }) => ({ channels }),
   }),

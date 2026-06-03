@@ -15,11 +15,12 @@ che si accumulano in un canvas laterale, pronti per essere affinati ed esportati
 - **Editabile** — trascini lo slider del budget, riordini i canali: le modifiche restano nel piano.
 - **Esportabile** — un click genera un documento di lancio pronto per *Salva come PDF*. Questo è il vero deliverable.
 
-## 🧩 I 5 tool generativi
+## 🧩 I 6 tool generativi
 
 | Tool | Componente | Interazione |
 |---|---|---|
 | `renderPersonaCard` | Card cliente-tipo | Età, pain point, canali, messaggio chiave |
+| `renderValueProp` | Proposta di valore | Problema → soluzione → perché te |
 | `renderChannelRanking` | Classifica canali | Drag-to-reorder |
 | `renderBudgetSlider` | Slider budget | Ripartizione live per canale |
 | `renderLaunchTimeline` | Roadmap verticale | Milestone espandibili |

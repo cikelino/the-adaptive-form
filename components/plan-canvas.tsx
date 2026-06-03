@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BudgetSlider } from '@/components/budget-slider';
 import { ChannelRanking } from '@/components/channel-ranking';
 import { PersonaCard } from '@/components/persona-card';
+import { ValueProposition } from '@/components/value-proposition';
 import { LaunchTimeline } from '@/components/launch-timeline';
 import { TeamNeeds } from '@/components/team-needs';
 import { PLAN_ITEMS, type PlanSlot } from '@/lib/plan';
@@ -12,6 +13,8 @@ function Artifact({ slot, onUpdate }: { slot: PlanSlot; onUpdate: (data: unknown
   switch (slot.type) {
     case 'tool-renderPersonaCard':
       return <PersonaCard {...slot.data} />;
+    case 'tool-renderValueProp':
+      return <ValueProposition {...slot.data} />;
     case 'tool-renderChannelRanking':
       return <ChannelRanking {...slot.data} onChange={onUpdate} />;
     case 'tool-renderBudgetSlider':

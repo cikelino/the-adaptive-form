@@ -23,6 +23,17 @@ function bodyFor(slot: PlanSlot): string {
          <blockquote>${esc(d.keyMessage)}</blockquote>`,
       );
 
+    case 'tool-renderValueProp':
+      return section(
+        '💡 Proposta di valore',
+        `<p class="big" style="font-size:22px">“${esc(d.headline)}”</p>
+         <p class="muted">Invece di: <s>${esc(d.alternative)}</s></p>
+         <h3>Problema</h3><p>${esc(d.problem)}</p>
+         <h3>Soluzione</h3><p>${esc(d.solution)}</p>
+         <h3>Perché te</h3>
+         <ul>${d.differentiators.map((x: string) => `<li>${esc(x)}</li>`).join('')}</ul>`,
+      );
+
     case 'tool-renderChannelRanking':
       return section(
         '📡 Canali consigliati',

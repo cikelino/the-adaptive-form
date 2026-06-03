@@ -3,6 +3,7 @@ import {
   budgetArgsSchema,
   channelRankingArgsSchema,
   personaArgsSchema,
+  valuePropArgsSchema,
   timelineArgsSchema,
   teamNeedsArgsSchema,
 } from '@/ai/tools';
@@ -10,6 +11,7 @@ import {
 // Metadata canonico dei tool: definisce ANCHE l'ordine logico nel piano.
 export const PLAN_ITEMS: { type: string; label: string; emoji: string; schema: ZodTypeAny }[] = [
   { type: 'tool-renderPersonaCard', label: 'Cliente tipo', emoji: '🧑‍💼', schema: personaArgsSchema },
+  { type: 'tool-renderValueProp', label: 'Proposta di valore', emoji: '💡', schema: valuePropArgsSchema },
   { type: 'tool-renderChannelRanking', label: 'Canali', emoji: '📡', schema: channelRankingArgsSchema },
   { type: 'tool-renderBudgetSlider', label: 'Budget', emoji: '💰', schema: budgetArgsSchema },
   { type: 'tool-renderLaunchTimeline', label: 'Roadmap', emoji: '🗓️', schema: timelineArgsSchema },
