@@ -7,7 +7,8 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BudgetSlider } from '@/components/budget-slider';
 import { BudgetSkeleton } from '@/components/budget-skeleton';
-import { budgetArgsSchema } from '@/ai/tools';
+import { ChannelRanking } from '@/components/channel-ranking';
+import { budgetArgsSchema, channelRankingArgsSchema } from '@/ai/tools';
 
 const SUGGESTIONS = [
   'Brand di caffè biologico, budget 5.000€',
@@ -15,7 +16,71 @@ const SUGGESTIONS = [
   'Negozio di ceramiche, budget contenuto',
 ];
 
+function isToolPart(part: { type: string }) {
+  return part.type === 'tool-renderBudgetSlider' || part.type === 'tool-renderChannelRanking';
+}
+
+function ToolComponent({ part, index }: { part: { type: string; state?: string; output?: unknown }, index: number }) {
+  if (part.type === 'tool-renderBudgetSlider') {
+    if (part.state === 'output-available') {
+      const parsed = budgetArgsSchema.safeParse(part.output);
+      if (!parsed.success) return null;
+      return <BudgetSlider key={index} {...parsed.data} />;
+    }
+    return <BudgetSkeleton key={index} />;
+  }
+  if (part.type === 'tool-renderChannelRanking') {
+    if (part.state === 'output-available') {
+      const parsed = channelRankingArgsSchema.safeParse(part.output);
+      if (!parsed.success) return null;
+      return <ChannelRanking key={index} {...parsed.data} />;
+    }
+    return <BudgetSkeleton key={index} />;
+  }
+  return null;
+}
+
+// Groups consecutive tool parts together, text parts stay standalone
+type Segment =
+  | { kind: 'text'; text: string; index: number }
+  | { kind: 'tools'; parts: Array<{ type: string; state?: string; output?: unknown; index: number }> };
+
+function segmentParts(parts: Array<{ type: string; state?: string; output?: unknown; text?: string }>): Segment[] {
+  const segments: Segment[] = [];
+  let toolGroup: Array<{ type: string; state?: string; output?: unknown; index: number }> = [];
+
+  const flushTools = () => {
+    if (toolGroup.length > 0) {
+      segments.push({ kind: 'tools', parts: toolGroup });
+      toolGroup = [];
+    }
+  };
+
+  parts.forEach((part, i) => {
+    if (part.type === 'text') {
+      const text = (part as { type: 'text'; text: string }).text;
+      if (text.trim()) {
+        flushTools();
+        segments.push({ kind: 'text', text, index: i });
+      }
+    } else if (isToolPart(part)) {
+      toolGroup.push({ ...part, index: i });
+    } else {
+      flushTools();
+    }
+  });
+
+  flushTools();
+  return segments;
+}
+
 export default function Page() {
+  const [chatKey, setChatKey] = useState(0);
+
+  return <Chat key={chatKey} onReset={() => setChatKey((k) => k + 1)} />;
+}
+
+function Chat({ onReset }: { onReset: () => void }) {
   const [input, setInput] = useState('');
   const { messages, sendMessage, status } = useChat();
 
@@ -49,7 +114,7 @@ export default function Page() {
   );
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6">
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-6">
       {isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-10 py-20">
           <motion.div
@@ -88,7 +153,21 @@ export default function Page() {
         </div>
       ) : (
         <>
-          <div className="flex-1 space-y-6 py-20">
+          {/* Top bar with reset button */}
+          <div className="sticky top-0 z-10 flex items-center justify-between py-4">
+            <button
+              onClick={onReset}
+              className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/80 px-3 py-2 font-mono text-xs text-neutral-500 backdrop-blur transition-colors hover:border-neutral-700 hover:text-neutral-300"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              Nuova chat
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-6 pb-20">
             {messages.map((m) => (
               <div key={m.id}>
                 {m.role === 'user' ? (
@@ -101,28 +180,34 @@ export default function Page() {
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col gap-3"
+                    className="flex flex-col gap-4"
                   >
-                    {m.parts.map((part, i) => {
-                      if (part.type === 'text' && part.text.trim()) {
+                    {segmentParts(m.parts as Parameters<typeof segmentParts>[0]).map((seg, si) => {
+                      if (seg.kind === 'text') {
                         return (
                           <div
-                            key={i}
+                            key={si}
                             className="prose prose-invert prose-sm max-w-none font-mono prose-p:leading-relaxed prose-strong:text-teal-300 prose-li:marker:text-teal-500"
                           >
-                            <Markdown remarkPlugins={[remarkGfm]}>{part.text}</Markdown>
+                            <Markdown remarkPlugins={[remarkGfm]}>{seg.text}</Markdown>
                           </div>
                         );
                       }
-                      if (part.type === 'tool-renderBudgetSlider') {
-                        if (part.state === 'output-available') {
-                          const parsed = budgetArgsSchema.safeParse(part.output);
-                          if (!parsed.success) return null;
-                          return <BudgetSlider key={i} {...parsed.data} />;
-                        }
-                        return <BudgetSkeleton key={i} />;
-                      }
-                      return null;
+                      // Tool group — side by side on md+, stacked on mobile
+                      return (
+                        <div
+                          key={si}
+                          className={
+                            seg.parts.length > 1
+                              ? 'grid grid-cols-1 gap-4 md:grid-cols-2'
+                              : 'flex'
+                          }
+                        >
+                          {seg.parts.map((part) => (
+                            <ToolComponent key={part.index} part={part} index={part.index} />
+                          ))}
+                        </div>
+                      );
                     })}
                   </motion.div>
                 )}
