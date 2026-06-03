@@ -55,7 +55,7 @@ function Chat({ onReset }: { onReset: () => void }) {
   const [input, setInput] = useState('');
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, error, regenerate, clearError } = useChat();
 
   // ── Stato del piano: unisce dati AI ed edit utente ──────────────────────────
   // L'AI è la sorgente di verità; gli edit utente sono applicati finché la
@@ -73,6 +73,21 @@ function Chat({ onReset }: { onReset: () => void }) {
     if (!slot) return;
     setEdits((prev) => ({ ...prev, [type]: { version: slot.version, data } }));
   };
+
+  // Tool in fase di generazione (chiamati ma senza output) e non ancora nel piano:
+  // servono a mostrare uno skeleton nel canvas durante l'attesa.
+  const pendingTypes = useMemo(() => {
+    const ready = new Set(slots.map((s) => s.type));
+    const pending = new Set<string>();
+    for (const m of messages) {
+      for (const part of m.parts as { type: string; state?: string }[]) {
+        if (isToolPart(part) && part.state !== 'output-available' && !ready.has(part.type)) {
+          pending.add(part.type);
+        }
+      }
+    }
+    return [...pending];
+  }, [messages, slots]);
 
   // ── Scroll-to-bottom (sul contenitore messaggi, non sulla finestra) ─────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -100,14 +115,41 @@ function Chat({ onReset }: { onReset: () => void }) {
   const scrollToBottom = () =>
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
 
-  // Chiusura del drawer mobile con il tasto Escape (accessibilità da tastiera).
+  // Drawer mobile: focus trap completo (Escape per chiudere, Tab ciclico,
+  // focus iniziale sul pannello e ritorno del focus all'elemento di partenza).
+  const drawerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!drawerOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const panel = drawerRef.current;
+    const focusables = panel?.querySelectorAll<HTMLElement>(
+      'button, [href], input, [tabindex]:not([tabindex="-1"])',
+    );
+    focusables?.[0]?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDrawerOpen(false);
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previouslyFocused?.focus?.();
+    };
   }, [drawerOpen]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -147,7 +189,7 @@ function Chat({ onReset }: { onReset: () => void }) {
               type="submit"
               disabled={!input.trim()}
               aria-label="Invia messaggio"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 transition-all hover:bg-teal-500/25 active:scale-90 disabled:opacity-30 disabled:hover:bg-teal-500/15"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 transition-all hover:bg-teal-500/25 active:scale-90 disabled:opacity-30 disabled:hover:bg-teal-500/15"
             >
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -284,6 +326,29 @@ function Chat({ onReset }: { onReset: () => void }) {
 
           {/* Command bar + scroll-to-bottom */}
           <div className="shrink-0 pb-6 pt-3">
+            {error && (
+              <div
+                role="alert"
+                className="mx-auto mb-3 flex max-w-xl items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5"
+              >
+                <span className="font-mono text-xs text-rose-200">
+                  Qualcosa è andato storto nella risposta.
+                </span>
+                <button
+                  onClick={() => {
+                    clearError();
+                    regenerate();
+                  }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-rose-500/40 px-2.5 py-1.5 font-mono text-xs text-rose-200 transition-colors hover:bg-rose-500/20 active:scale-95"
+                >
+                  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                  </svg>
+                  Riprova
+                </button>
+              </div>
+            )}
             <div className="relative flex justify-center">
               <AnimatePresence>
                 {showScrollDown && (
@@ -292,7 +357,7 @@ function Chat({ onReset }: { onReset: () => void }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.9 }}
                     onClick={scrollToBottom}
-                    className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-lg backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-300 active:scale-90"
+                    className="absolute -top-14 right-0 flex h-11 w-11 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-lg backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-300 active:scale-90"
                     aria-label="Vai in fondo alla conversazione"
                   >
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -308,7 +373,7 @@ function Chat({ onReset }: { onReset: () => void }) {
 
           {/* Canvas (desktop) */}
           <aside className="hidden min-h-0 w-[380px] shrink-0 flex-col py-4 lg:flex">
-            <PlanCanvas slots={slots} onUpdate={updateSlot} onExport={() => exportPlan(slots)} />
+            <PlanCanvas slots={slots} pendingTypes={pendingTypes} onUpdate={updateSlot} onExport={() => exportPlan(slots)} />
           </aside>
         </div>
       </div>
@@ -324,6 +389,7 @@ function Chat({ onReset }: { onReset: () => void }) {
           >
             <div aria-hidden="true" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
             <motion.div
+              ref={drawerRef}
               role="dialog"
               aria-modal="true"
               aria-label="Il tuo piano di lancio"
@@ -335,6 +401,7 @@ function Chat({ onReset }: { onReset: () => void }) {
             >
               <PlanCanvas
                 slots={slots}
+                pendingTypes={pendingTypes}
                 onUpdate={updateSlot}
                 onExport={() => exportPlan(slots)}
                 onClose={() => setDrawerOpen(false)}

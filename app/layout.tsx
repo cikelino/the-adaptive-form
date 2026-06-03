@@ -15,9 +15,26 @@ const instrumentSerif = Instrument_Serif({
   variable: '--font-instrument-serif',
 });
 
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : 'http://localhost:3000';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'The Adaptive Form',
-  description: "L'interfaccia si costruisce mentre scrivi.",
+  description:
+    'Workspace generativo: l’AI assembla un piano di lancio strutturato e modificabile mentre conversi.',
+  openGraph: {
+    title: 'The Adaptive Form',
+    description: 'Il tuo piano di lancio si costruisce mentre parli.',
+    type: 'website',
+    locale: 'it_IT',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'The Adaptive Form',
+    description: 'Il tuo piano di lancio si costruisce mentre parli.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

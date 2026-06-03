@@ -7,7 +7,25 @@ import { PersonaCard } from '@/components/persona-card';
 import { ValueProposition } from '@/components/value-proposition';
 import { LaunchTimeline } from '@/components/launch-timeline';
 import { TeamNeeds } from '@/components/team-needs';
-import { PLAN_ITEMS, type PlanSlot } from '@/lib/plan';
+import { PLAN_ITEMS, planMeta, type PlanSlot } from '@/lib/plan';
+
+// Placeholder mostrato mentre l'AI sta generando un elemento del piano.
+function ArtifactSkeleton({ type }: { type: string }) {
+  const meta = planMeta(type);
+  return (
+    <div className="w-full max-w-md animate-pulse rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5">
+      <div className="mb-4 flex items-center gap-2 text-neutral-600">
+        <span aria-hidden="true">{meta?.emoji}</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em]">{meta?.label}</span>
+      </div>
+      <div className="space-y-2.5">
+        <div className="h-3 w-3/4 rounded bg-neutral-800" />
+        <div className="h-3 w-1/2 rounded bg-neutral-800" />
+        <div className="h-16 w-full rounded-lg bg-neutral-800/60" />
+      </div>
+    </div>
+  );
+}
 
 function Artifact({ slot, onUpdate }: { slot: PlanSlot; onUpdate: (data: unknown) => void }) {
   switch (slot.type) {
@@ -30,16 +48,18 @@ function Artifact({ slot, onUpdate }: { slot: PlanSlot; onUpdate: (data: unknown
 
 export function PlanCanvas({
   slots,
+  pendingTypes = [],
   onUpdate,
   onExport,
   onClose,
 }: {
   slots: PlanSlot[];
+  pendingTypes?: string[];
   onUpdate: (type: string, data: unknown) => void;
   onExport: () => void;
   onClose?: () => void;
 }) {
-  const isEmpty = slots.length === 0;
+  const isEmpty = slots.length === 0 && pendingTypes.length === 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -110,6 +130,18 @@ export function PlanCanvas({
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
               >
                 <Artifact slot={slot} onUpdate={(data) => onUpdate(slot.type, data)} />
+              </motion.div>
+            ))}
+            {pendingTypes.map((type) => (
+              <motion.div
+                key={`pending-${type}`}
+                layout
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              >
+                <ArtifactSkeleton type={type} />
               </motion.div>
             ))}
           </AnimatePresence>
