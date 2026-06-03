@@ -40,8 +40,8 @@ export function PlanCanvas({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      {/* Header (fisso) */}
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <div>
           <h2 className="font-display text-lg text-neutral-100">Il tuo piano</h2>
           <p className="font-mono text-[11px] text-neutral-500">
@@ -75,7 +75,7 @@ export function PlanCanvas({
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body (scroll interno) */}
       {isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-neutral-800 px-6 py-12 text-center">
           <p className="font-mono text-xs leading-relaxed text-neutral-600">
@@ -95,7 +95,7 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="scroll-area flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
           <AnimatePresence mode="popLayout">
             {slots.map((slot) => (
               <motion.div

@@ -124,12 +124,33 @@ export function buildPlanHtml(slots: PlanSlot[]): string {
 </body></html>`;
 }
 
+// Stampa tramite iframe nascosto same-origin: evita il blocco popup e il
+// SecurityError cross-origin di window.open. L'utente può "Salva come PDF".
 export function exportPlan(slots: PlanSlot[]) {
   if (slots.length === 0) return;
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write(buildPlanHtml(slots));
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 350);
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+
+  const win = iframe.contentWindow;
+  const doc = win?.document;
+  if (!win || !doc) {
+    iframe.remove();
+    return;
+  }
+
+  doc.open();
+  doc.write(buildPlanHtml(slots));
+  doc.close();
+
+  const cleanup = () => setTimeout(() => iframe.remove(), 1000);
+  win.onafterprint = cleanup;
+
+  // Attende il render del documento prima di stampare.
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 300);
 }

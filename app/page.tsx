@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Markdown from 'react-markdown';
@@ -68,19 +68,31 @@ function Chat({ onReset }: { onReset: () => void }) {
     setEdits((prev) => ({ ...prev, [type]: { version: slot.version, data } }));
   };
 
-  // ── Scroll-to-bottom ────────────────────────────────────────────────────────
+  // ── Scroll-to-bottom (sul contenitore messaggi, non sulla finestra) ─────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
     const onScroll = () => {
-      const dist = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
-      setShowScrollDown(dist > 280);
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowScrollDown(dist > 200);
     };
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, [messages.length]);
 
+  // Auto-follow durante lo streaming se l'utente è già vicino al fondo.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (dist < 400) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
   const scrollToBottom = () =>
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   const send = (text: string) => {
@@ -155,14 +167,15 @@ function Chat({ onReset }: { onReset: () => void }) {
     );
   }
 
-  // ── Workspace two-pane ──────────────────────────────────────────────────────
+  // ── Workspace two-pane (app-shell a tutta altezza) ──────────────────────────
   return (
     <>
-      <main className="mx-auto flex min-h-screen w-full max-w-6xl gap-8 px-6">
-        {/* Colonna chat */}
-        <section className="relative flex min-w-0 flex-1 flex-col">
+      <div className="flex h-screen flex-col overflow-hidden">
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-8 px-6">
+          {/* Colonna chat */}
+          <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Top bar */}
-          <div className="sticky top-0 z-20 flex items-center justify-between bg-gradient-to-b from-[#08090a] via-[#08090a]/90 to-transparent py-4">
+          <div className="flex shrink-0 items-center justify-between py-4">
             <button
               onClick={onReset}
               className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 px-3.5 py-2 font-mono text-xs text-neutral-300 backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-200"
@@ -188,8 +201,8 @@ function Chat({ onReset }: { onReset: () => void }) {
             </button>
           </div>
 
-          {/* Messaggi */}
-          <div className="flex-1 space-y-6 pb-28">
+          {/* Messaggi (scroll interno) */}
+          <div ref={scrollRef} className="scroll-area flex-1 space-y-6 overflow-y-auto pb-6 pr-1">
             {messages.map((m) => (
               <div key={m.id}>
                 {m.role === 'user' ? (
@@ -228,7 +241,7 @@ function Chat({ onReset }: { onReset: () => void }) {
           </div>
 
           {/* Command bar + scroll-to-bottom */}
-          <div className="sticky bottom-0 z-20 bg-gradient-to-t from-[#08090a] via-[#08090a] to-transparent pb-6 pt-4">
+          <div className="shrink-0 pb-6 pt-3">
             <div className="relative flex justify-center">
               <AnimatePresence>
                 {showScrollDown && (
@@ -249,15 +262,14 @@ function Chat({ onReset }: { onReset: () => void }) {
               {commandBar}
             </div>
           </div>
-        </section>
+          </section>
 
-        {/* Canvas (desktop) */}
-        <aside className="hidden w-[380px] shrink-0 lg:block">
-          <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pb-6">
+          {/* Canvas (desktop) */}
+          <aside className="hidden min-h-0 w-[380px] shrink-0 flex-col py-4 lg:flex">
             <PlanCanvas slots={slots} onUpdate={updateSlot} onExport={() => exportPlan(slots)} />
-          </div>
-        </aside>
-      </main>
+          </aside>
+        </div>
+      </div>
 
       {/* Canvas (mobile drawer) */}
       <AnimatePresence>
@@ -274,7 +286,7 @@ function Chat({ onReset }: { onReset: () => void }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto border-l border-neutral-800 bg-[#0c0d0e] p-5"
+              className="absolute right-0 top-0 flex h-full w-[88%] max-w-sm flex-col border-l border-neutral-800 bg-[#0c0d0e] p-5"
             >
               <PlanCanvas
                 slots={slots}
