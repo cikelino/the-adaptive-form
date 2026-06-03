@@ -10,8 +10,16 @@ const difficultyColor = {
   alta: 'text-rose-400 border-rose-500/20 bg-rose-500/5',
 };
 
-export function ChannelRanking({ channels: initial }: ChannelRankingArgs) {
+export function ChannelRanking({
+  channels: initial,
+  onChange,
+}: ChannelRankingArgs & { onChange?: (next: ChannelRankingArgs) => void }) {
   const [channels, setChannels] = useState(initial);
+
+  const reorder = (next: typeof initial) => {
+    setChannels(next);
+    onChange?.({ channels: next });
+  };
 
   return (
     <motion.div
@@ -36,7 +44,7 @@ export function ChannelRanking({ channels: initial }: ChannelRankingArgs) {
         Ordinati per rilevanza. Trascina per personalizzare.
       </p>
 
-      <Reorder.Group axis="y" values={channels} onReorder={setChannels} className="space-y-2">
+      <Reorder.Group axis="y" values={channels} onReorder={reorder} className="space-y-2">
         {channels.map((ch, i) => (
           <Reorder.Item
             key={ch.name}

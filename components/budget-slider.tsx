@@ -7,8 +7,18 @@ import type { BudgetArgs } from '@/ai/tools';
 const MIN = 500;
 const MAX = 20000;
 
-export function BudgetSlider({ budget, currency = '€', allocations }: BudgetArgs) {
+export function BudgetSlider({
+  budget,
+  currency = '€',
+  allocations,
+  onChange,
+}: BudgetArgs & { onChange?: (next: BudgetArgs) => void }) {
   const [value, setValue] = useState(Math.min(Math.max(budget, MIN), MAX));
+
+  const update = (next: number) => {
+    setValue(next);
+    onChange?.({ budget: next, currency, allocations });
+  };
 
   return (
     <motion.div
@@ -26,7 +36,7 @@ export function BudgetSlider({ budget, currency = '€', allocations }: BudgetAr
         <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Budget di lancio</span>
       </div>
       <p className="mb-5 font-mono text-xs text-neutral-500">
-        Stima proposta dall'IA. Trascina per affinare.
+        Stima proposta dall&apos;IA. Trascina per affinare.
       </p>
 
       {/* Value */}
@@ -41,7 +51,7 @@ export function BudgetSlider({ budget, currency = '€', allocations }: BudgetAr
         max={MAX}
         step={500}
         value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
+        onChange={(e) => update(Number(e.target.value))}
         className="mt-4 w-full"
       />
       <div className="mt-1.5 flex justify-between font-mono text-[10px] text-neutral-600">
