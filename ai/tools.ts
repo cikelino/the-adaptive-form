@@ -16,9 +16,7 @@ export const budgetArgsSchema = z.object({
     .array(allocationSchema)
     .min(2)
     .max(5)
-    .describe(
-      'Ripartizione del budget per canale. Le percentuali devono sommare a 100.',
-    ),
+    .describe('Ripartizione del budget per canale. Le percentuali devono sommare a 100.'),
 });
 
 export type BudgetArgs = z.infer<typeof budgetArgsSchema>;
@@ -43,12 +41,65 @@ export const channelRankingArgsSchema = z.object({
 
 export type ChannelRankingArgs = z.infer<typeof channelRankingArgsSchema>;
 
+// ── PersonaCard ──────────────────────────────────────────────────────────────
+
+export const personaArgsSchema = z.object({
+  name: z.string().describe('Nome fittizio della persona, es. "Giulia"'),
+  emoji: z.string().describe('Emoji/avatar rappresentativo, es. "🧑‍💼"'),
+  age: z.string().describe('Fascia d\'età, es. "28-35"'),
+  role: z.string().describe('Occupazione o ruolo, es. "Manager urbana attenta al benessere"'),
+  painPoints: z.array(z.string()).min(2).max(4).describe('Problemi/bisogni principali del target'),
+  channels: z.array(z.string()).min(2).max(4).describe('Dove si trova online, es. ["Instagram", "Podcast"]'),
+  keyMessage: z.string().describe('Il messaggio chiave che risuona con questa persona (1 frase)'),
+});
+
+export type PersonaArgs = z.infer<typeof personaArgsSchema>;
+
+// ── LaunchTimeline ───────────────────────────────────────────────────────────
+
+const milestoneSchema = z.object({
+  week: z.string().describe('Etichetta temporale, es. "Sett. 1-2" o "Mese 1"'),
+  title: z.string().describe('Titolo della milestone, es. "Validazione idea"'),
+  description: z.string().describe('Cosa fare in questa fase (max 15 parole)'),
+  phase: z.enum(['preparazione', 'lancio', 'crescita']).describe('Fase del progetto'),
+});
+
+export const timelineArgsSchema = z.object({
+  milestones: z
+    .array(milestoneSchema)
+    .min(3)
+    .max(6)
+    .describe('Milestone in ordine cronologico dal primo all\'ultimo'),
+});
+
+export type TimelineArgs = z.infer<typeof timelineArgsSchema>;
+
+// ── TeamNeeds ────────────────────────────────────────────────────────────────
+
+const roleSchema = z.object({
+  title: z.string().describe('Titolo del ruolo, es. "Social Media Manager"'),
+  emoji: z.string().describe('Emoji rappresentativa'),
+  type: z.enum(['interno', 'freelance', 'agenzia']).describe('Tipo di collaborazione consigliata'),
+  priority: z.enum(['subito', 'presto', 'dopo']).describe('Urgenza dell\'assunzione'),
+  monthlyCost: z.number().describe('Costo mensile stimato in euro'),
+});
+
+export const teamNeedsArgsSchema = z.object({
+  roles: z
+    .array(roleSchema)
+    .min(2)
+    .max(5)
+    .describe('Ruoli necessari ordinati per priorità'),
+});
+
+export type TeamNeedsArgs = z.infer<typeof teamNeedsArgsSchema>;
+
 // ── Tool registry ────────────────────────────────────────────────────────────
 
 export const tools = {
   renderBudgetSlider: tool({
     description:
-      "Mostra uno slider per raffinare il budget con ripartizione per canale. Chiamare quando l'utente menziona denaro, cifre o investimenti.",
+      "Mostra uno slider per raffinare il budget con ripartizione per canale. Chiamare quando si conosce l'importo che l'utente vuole investire.",
     inputSchema: budgetArgsSchema,
     execute: async ({ budget, currency, allocations }) => ({
       budget,
@@ -59,8 +110,29 @@ export const tools = {
 
   renderChannelRanking: tool({
     description:
-      'Mostra una classifica interattiva dei canali di marketing consigliati in base al tipo di progetto descritto. Chiamare dopo aver capito il settore/tipo di business.',
+      'Mostra una classifica interattiva dei canali di marketing consigliati in base al tipo di progetto. Chiamare dopo aver capito settore e target.',
     inputSchema: channelRankingArgsSchema,
     execute: async ({ channels }) => ({ channels }),
+  }),
+
+  renderPersonaCard: tool({
+    description:
+      'Mostra una card del cliente-tipo (buyer persona) del progetto: età, ruolo, pain point, canali e messaggio chiave. Chiamare quando si vuole definire il target ideale.',
+    inputSchema: personaArgsSchema,
+    execute: async (args) => args,
+  }),
+
+  renderLaunchTimeline: tool({
+    description:
+      'Mostra una timeline visuale con le milestone del lancio (preparazione → lancio → crescita). Chiamare quando si pianifica la roadmap nel tempo.',
+    inputSchema: timelineArgsSchema,
+    execute: async ({ milestones }) => ({ milestones }),
+  }),
+
+  renderTeamNeeds: tool({
+    description:
+      'Mostra i ruoli/figure necessari per realizzare il progetto con priorità e costo mensile stimato. Chiamare quando si parla di team, risorse o esecuzione.',
+    inputSchema: teamNeedsArgsSchema,
+    execute: async ({ roles }) => ({ roles }),
   }),
 };

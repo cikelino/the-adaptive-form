@@ -8,36 +8,67 @@ import remarkGfm from 'remark-gfm';
 import { BudgetSlider } from '@/components/budget-slider';
 import { BudgetSkeleton } from '@/components/budget-skeleton';
 import { ChannelRanking } from '@/components/channel-ranking';
-import { budgetArgsSchema, channelRankingArgsSchema } from '@/ai/tools';
+import { PersonaCard } from '@/components/persona-card';
+import { LaunchTimeline } from '@/components/launch-timeline';
+import { TeamNeeds } from '@/components/team-needs';
+import {
+  budgetArgsSchema,
+  channelRankingArgsSchema,
+  personaArgsSchema,
+  timelineArgsSchema,
+  teamNeedsArgsSchema,
+} from '@/ai/tools';
+
+const TOOL_TYPES = [
+  'tool-renderBudgetSlider',
+  'tool-renderChannelRanking',
+  'tool-renderPersonaCard',
+  'tool-renderLaunchTimeline',
+  'tool-renderTeamNeeds',
+];
 
 const SUGGESTIONS = [
-  'Brand di caffè biologico, budget 5.000€',
-  'Startup fitness, investo circa 12k',
-  'Negozio di ceramiche, budget contenuto',
+  'Voglio lanciare un brand di caffè biologico',
+  'Sto avviando una startup di fitness, budget 12k',
+  'Apro un negozio di ceramiche artigianali',
 ];
 
 function isToolPart(part: { type: string }) {
-  return part.type === 'tool-renderBudgetSlider' || part.type === 'tool-renderChannelRanking';
+  return TOOL_TYPES.includes(part.type);
 }
 
 function ToolComponent({ part, index }: { part: { type: string; state?: string; output?: unknown }, index: number }) {
-  if (part.type === 'tool-renderBudgetSlider') {
-    if (part.state === 'output-available') {
+  const ready = part.state === 'output-available';
+
+  switch (part.type) {
+    case 'tool-renderBudgetSlider': {
+      if (!ready) return <BudgetSkeleton key={index} />;
       const parsed = budgetArgsSchema.safeParse(part.output);
-      if (!parsed.success) return null;
-      return <BudgetSlider key={index} {...parsed.data} />;
+      return parsed.success ? <BudgetSlider key={index} {...parsed.data} /> : null;
     }
-    return <BudgetSkeleton key={index} />;
-  }
-  if (part.type === 'tool-renderChannelRanking') {
-    if (part.state === 'output-available') {
+    case 'tool-renderChannelRanking': {
+      if (!ready) return <BudgetSkeleton key={index} />;
       const parsed = channelRankingArgsSchema.safeParse(part.output);
-      if (!parsed.success) return null;
-      return <ChannelRanking key={index} {...parsed.data} />;
+      return parsed.success ? <ChannelRanking key={index} {...parsed.data} /> : null;
     }
-    return <BudgetSkeleton key={index} />;
+    case 'tool-renderPersonaCard': {
+      if (!ready) return <BudgetSkeleton key={index} />;
+      const parsed = personaArgsSchema.safeParse(part.output);
+      return parsed.success ? <PersonaCard key={index} {...parsed.data} /> : null;
+    }
+    case 'tool-renderLaunchTimeline': {
+      if (!ready) return <BudgetSkeleton key={index} />;
+      const parsed = timelineArgsSchema.safeParse(part.output);
+      return parsed.success ? <LaunchTimeline key={index} {...parsed.data} /> : null;
+    }
+    case 'tool-renderTeamNeeds': {
+      if (!ready) return <BudgetSkeleton key={index} />;
+      const parsed = teamNeedsArgsSchema.safeParse(part.output);
+      return parsed.success ? <TeamNeeds key={index} {...parsed.data} /> : null;
+    }
+    default:
+      return null;
   }
-  return null;
 }
 
 // Groups consecutive tool parts together, text parts stay standalone
