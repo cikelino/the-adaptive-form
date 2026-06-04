@@ -180,7 +180,7 @@ function Chat({ onReset }: { onReset: () => void }) {
             placeholder="Scrivi un messaggio…"
             aria-label="Messaggio per l'assistente"
             disabled={isBusy}
-            className="w-full bg-transparent font-mono text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none disabled:opacity-50"
+            className="w-full bg-transparent font-mono text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus-visible:outline-none disabled:opacity-50"
           />
           {isBusy ? (
             <span aria-hidden="true" className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-teal-400" />
