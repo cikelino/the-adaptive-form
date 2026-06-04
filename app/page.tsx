@@ -55,6 +55,9 @@ function Chat({ onReset }: { onReset: () => void }) {
   const [input, setInput] = useState('');
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [canvasOpen, setCanvasOpen] = useState(true); // pannello piano (desktop): aperto di default
+  const [canvasWidth, setCanvasWidth] = useState(440); // larghezza del pannello (ridimensionabile)
+  const [isResizing, setIsResizing] = useState(false);
   const { messages, sendMessage, status, error, regenerate, clearError } = useChat();
 
   // ── Stato del piano: unisce dati AI ed edit utente ──────────────────────────
@@ -115,6 +118,26 @@ function Chat({ onReset }: { onReset: () => void }) {
   const scrollToBottom = () =>
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
 
+  // ── Resize del pannello: trascinando il divisore si allarga/restringe ────────
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = canvasWidth;
+    setIsResizing(true);
+    const onMove = (ev: PointerEvent) => {
+      // trascinare verso sinistra (clientX cala) → pannello più largo
+      const next = startWidth + (startX - ev.clientX);
+      setCanvasWidth(Math.min(720, Math.max(320, next)));
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   // Drawer mobile: focus trap completo (Escape per chiudere, Tab ciclico,
   // focus iniziale sul pannello e ritorno del focus all'elemento di partenza).
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -162,13 +185,17 @@ function Chat({ onReset }: { onReset: () => void }) {
   const isEmpty = messages.length === 0;
   const isBusy = status === 'submitted' || status === 'streaming';
 
+  // Canvas aperto → la chat riempie la sua colonna (nessun vuoto verso il canvas).
+  // Canvas chiuso → la chat si centra a larghezza leggibile.
+  const chatCenter = canvasOpen ? '' : 'mx-auto max-w-2xl';
+
   const commandBar = (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         send(input);
       }}
-      className="w-full max-w-xl"
+      className="w-full"
     >
       <div className="group relative">
         <div className="relative flex items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-3 backdrop-blur transition-colors focus-within:border-teal-500/60">
@@ -226,7 +253,7 @@ function Chat({ onReset }: { onReset: () => void }) {
             </p>
           </motion.div>
 
-          {commandBar}
+          <div className="w-full max-w-xl">{commandBar}</div>
 
           <div className="flex flex-wrap justify-center gap-2">
             {SUGGESTIONS.map((s) => (
@@ -248,11 +275,15 @@ function Chat({ onReset }: { onReset: () => void }) {
   return (
     <>
       <div className="flex h-screen flex-col overflow-hidden">
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-8 px-6">
-          {/* Colonna chat */}
+        <div
+          className={`relative mx-auto flex min-h-0 w-full flex-1 px-6 ${
+            isResizing ? 'cursor-col-resize select-none' : ''
+          }`}
+        >
+          {/* Colonna chat — riempie lo spazio a sinistra; il contenuto resta centrato e leggibile */}
           <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Top bar */}
-          <div className="flex shrink-0 items-center justify-between py-4">
+          <div className={`flex w-full shrink-0 items-center justify-between py-4 ${chatCenter}`}>
             <button
               onClick={onReset}
               className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 px-3.5 py-2 font-mono text-xs text-neutral-300 backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-200 active:scale-[0.97]"
@@ -284,7 +315,7 @@ function Chat({ onReset }: { onReset: () => void }) {
             ref={scrollRef}
             role="log"
             aria-label="Conversazione con l'assistente"
-            className="scroll-area flex-1 space-y-6 overflow-y-auto pb-6 pr-1"
+            className={`scroll-area w-full flex-1 space-y-6 overflow-y-auto pb-6 pr-1 ${chatCenter}`}
           >
             {messages.map((m) => (
               <div key={m.id}>
@@ -324,11 +355,11 @@ function Chat({ onReset }: { onReset: () => void }) {
           </div>
 
           {/* Command bar + scroll-to-bottom */}
-          <div className="shrink-0 pb-6 pt-3">
+          <div className={`w-full shrink-0 pb-6 pt-3 ${chatCenter}`}>
             {error && (
               <div
                 role="alert"
-                className="mx-auto mb-3 flex max-w-xl items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5"
+                className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5"
               >
                 <span className="font-mono text-xs text-rose-200">
                   Qualcosa è andato storto nella risposta.
@@ -348,7 +379,7 @@ function Chat({ onReset }: { onReset: () => void }) {
                 </button>
               </div>
             )}
-            <div className="relative flex justify-center">
+            <div className="relative">
               <AnimatePresence>
                 {showScrollDown && (
                   <motion.button
@@ -370,10 +401,78 @@ function Chat({ onReset }: { onReset: () => void }) {
           </div>
           </section>
 
-          {/* Canvas (desktop) */}
-          <aside className="hidden min-h-0 w-[380px] shrink-0 flex-col py-4 lg:flex">
-            <PlanCanvas slots={slots} pendingTypes={pendingTypes} onUpdate={updateSlot} onExport={() => exportPlan(slots)} />
+          {/* Divisore trascinabile (desktop, solo a pannello aperto) */}
+          {canvasOpen && (
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Trascina per ridimensionare i pannelli"
+              onPointerDown={startResize}
+              className="group hidden w-3 shrink-0 cursor-col-resize items-center justify-center lg:flex"
+            >
+              <div
+                className={`h-14 w-1 rounded-full transition-colors ${
+                  isResizing ? 'bg-teal-500/70' : 'bg-neutral-800 group-hover:bg-teal-500/60'
+                }`}
+              />
+            </div>
+          )}
+
+          {/* Canvas (desktop) — agganciato al bordo destro, collasso animato + ridimensionabile */}
+          <aside
+            className="hidden min-h-0 shrink-0 overflow-hidden py-4 lg:block"
+            style={{
+              width: canvasOpen ? canvasWidth : 0,
+              transition: isResizing ? 'none' : 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            {/* Contenuto a larghezza fissa: durante il collasso viene ritagliato senza riflui */}
+            <div
+              className="h-full transition-opacity duration-200"
+              style={{
+                width: canvasWidth,
+                opacity: canvasOpen ? 1 : 0,
+                pointerEvents: canvasOpen ? 'auto' : 'none',
+              }}
+              aria-hidden={!canvasOpen}
+            >
+              <PlanCanvas
+                slots={slots}
+                pendingTypes={pendingTypes}
+                onUpdate={updateSlot}
+                onExport={() => exportPlan(slots)}
+                onCollapse={() => setCanvasOpen(false)}
+              />
+            </div>
           </aside>
+
+          {/* Riapri (desktop): tab flottante al bordo destro quando il pannello è chiuso */}
+          <AnimatePresence>
+            {!canvasOpen && (
+              <motion.button
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setCanvasOpen(true)}
+                aria-label={`Mostra il piano${slots.length > 0 ? ` (${slots.length} elementi)` : ''}`}
+                className="absolute right-6 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950/80 px-2.5 py-4 text-neutral-400 backdrop-blur transition-colors hover:border-teal-500/50 hover:text-teal-300 lg:flex"
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
+                </svg>
+                {slots.length > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-teal-500/20 px-1 font-mono text-[10px] text-teal-300">
+                    {slots.length}
+                  </span>
+                )}
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] [writing-mode:vertical-rl]">
+                  Il tuo piano
+                </span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

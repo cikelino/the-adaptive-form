@@ -52,12 +52,14 @@ export function PlanCanvas({
   onUpdate,
   onExport,
   onClose,
+  onCollapse,
 }: {
   slots: PlanSlot[];
   pendingTypes?: string[];
   onUpdate: (type: string, data: unknown) => void;
   onExport: () => void;
   onClose?: () => void;
+  onCollapse?: () => void;
 }) {
   const isEmpty = slots.length === 0 && pendingTypes.length === 0;
 
@@ -77,13 +79,28 @@ export function PlanCanvas({
             disabled={isEmpty}
             className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 font-mono text-xs text-teal-300 transition-colors hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             Esporta
           </button>
+          {/* Collassa (desktop): riduce il pannello a icona */}
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="hidden rounded-lg border border-neutral-800 p-1.5 text-neutral-500 transition-colors hover:border-neutral-700 hover:text-neutral-300 lg:block"
+              aria-label="Riduci il pannello a icona"
+              title="Riduci a icona"
+            >
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="13 17 18 12 13 7" />
+                <polyline points="6 17 11 12 6 7" />
+              </svg>
+            </button>
+          )}
+          {/* Chiudi (mobile drawer) */}
           {onClose && (
             <button
               onClick={onClose}
@@ -118,7 +135,10 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        <div className="scroll-area flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
+        <div
+          className="scroll-area grid min-h-0 flex-1 content-start gap-4 overflow-y-auto pr-1"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
+        >
           <AnimatePresence mode="popLayout">
             {slots.map((slot) => (
               <motion.div
@@ -128,6 +148,7 @@ export function PlanCanvas({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                className="flex justify-center"
               >
                 <Artifact slot={slot} onUpdate={(data) => onUpdate(slot.type, data)} />
               </motion.div>
@@ -140,6 +161,7 @@ export function PlanCanvas({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                className="flex justify-center"
               >
                 <ArtifactSkeleton type={type} />
               </motion.div>
