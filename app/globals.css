@@ -24,18 +24,16 @@ body {
   background-attachment: fixed;
 }
 
-/* Focus visibile solo per chi naviga da tastiera (non al click del mouse) */
-:focus-visible {
+/* Focus visibile da tastiera SOLO sugli elementi cliccabili (bottoni, link).
+   I campi di testo e lo slider hanno indicatori di focus dedicati (bordo del
+   contenitore, thumb), quindi sono volutamente esclusi per evitare doppie cornici. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 2px;
   border-radius: 4px;
-}
-
-/* Gli input hanno indicatori di focus dedicati (bordo del contenitore,
-   thumb dello slider): niente outline globale per evitare doppie cornici. */
-input:focus-visible,
-textarea:focus-visible {
-  outline: none;
 }
 
 /* Rispetta la preferenza di sistema per ridurre il movimento */
