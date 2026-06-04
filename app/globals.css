@@ -31,6 +31,13 @@ body {
   border-radius: 4px;
 }
 
+/* Gli input hanno indicatori di focus dedicati (bordo del contenitore,
+   thumb dello slider): niente outline globale per evitare doppie cornici. */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 /* Rispetta la preferenza di sistema per ridurre il movimento */
 @media (prefers-reduced-motion: reduce) {
   *,

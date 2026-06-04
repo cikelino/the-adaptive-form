@@ -171,8 +171,7 @@ function Chat({ onReset }: { onReset: () => void }) {
       className="w-full max-w-xl"
     >
       <div className="group relative">
-        <div className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-r from-teal-500/0 via-teal-500/30 to-teal-500/0 opacity-0 blur transition-opacity duration-300 group-focus-within:opacity-100" />
-        <div className="relative flex items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-3 backdrop-blur transition-colors focus-within:border-teal-500/50">
+        <div className="relative flex items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/80 px-4 py-3 backdrop-blur transition-colors focus-within:border-teal-500/60">
           <span aria-hidden="true" className="font-mono text-teal-400">›</span>
           <input
             value={input}
