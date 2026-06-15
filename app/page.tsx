@@ -6,6 +6,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PlanCanvas } from '@/components/plan-canvas';
+import { Logo } from '@/components/logo';
 import { derivePlan, isToolPart, planMeta, type PlanSlot } from '@/lib/plan';
 import { exportPlan } from '@/lib/export-plan';
 
@@ -47,6 +48,22 @@ function ToolChip({ type, ready }: { type: string; ready: boolean }) {
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-400" />
         </>
       )}
+    </div>
+  );
+}
+
+// Indicatore "sta pensando": bolla con tre puntini animati (stile Claude/ChatGPT).
+function TypingIndicator() {
+  return (
+    <div className="inline-flex items-center gap-1.5 self-start rounded-2xl rounded-bl-md border border-neutral-800 bg-neutral-900/60 px-4 py-3">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="h-2 w-2 rounded-full bg-teal-400/80"
+          animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+        />
+      ))}
     </div>
   );
 }
@@ -228,10 +245,16 @@ function Chat({ onReset }: { onReset: () => void }) {
     </form>
   );
 
-  // ── Stato iniziale (hero) ───────────────────────────────────────────────────
-  if (isEmpty) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6">
+  // ── Render: transizione fluida tra hero e workspace ─────────────────────────
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {isEmpty ? (
+        <motion.main
+          key="hero"
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto flex min-h-screen max-w-3xl flex-col px-6"
+        >
         <div className="flex flex-1 flex-col items-center justify-center gap-10 py-20">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -239,6 +262,14 @@ function Chat({ onReset }: { onReset: () => void }) {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="text-center"
           >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="mb-6 flex justify-center"
+            >
+              <Logo className="h-16 w-auto drop-shadow-[0_0_24px_rgba(45,212,191,0.3)]" />
+            </motion.div>
             <p className="mb-4 font-mono text-xs uppercase tracking-[0.25em] text-teal-400/80">
               Generative UI · Live demo
             </p>
@@ -267,13 +298,14 @@ function Chat({ onReset }: { onReset: () => void }) {
             ))}
           </div>
         </div>
-      </main>
-    );
-  }
-
-  // ── Workspace two-pane (app-shell a tutta altezza) ──────────────────────────
-  return (
-    <>
+        </motion.main>
+      ) : (
+        <motion.div
+          key="workspace"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        >
       <div className="flex h-screen flex-col overflow-hidden">
         <div
           className={`relative mx-auto flex min-h-0 w-full flex-1 px-6 ${
@@ -284,6 +316,8 @@ function Chat({ onReset }: { onReset: () => void }) {
           <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Top bar */}
           <div className={`flex w-full shrink-0 items-center justify-between py-4 ${chatCenter}`}>
+            <div className="flex items-center gap-2.5">
+            <Logo className="h-8 w-auto shrink-0" />
             <button
               onClick={onReset}
               className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 px-3.5 py-2 font-mono text-xs text-neutral-300 backdrop-blur transition-all hover:border-teal-500/50 hover:text-teal-200 active:scale-[0.97]"
@@ -295,6 +329,7 @@ function Chat({ onReset }: { onReset: () => void }) {
               </svg>
               Nuova chat
             </button>
+            </div>
 
             {/* Apri piano (mobile) */}
             <button
@@ -352,6 +387,13 @@ function Chat({ onReset }: { onReset: () => void }) {
                 )}
               </div>
             ))}
+
+            {/* Indicatore "sta pensando" mentre attende la risposta */}
+            {status === 'submitted' && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <TypingIndicator />
+              </motion.div>
+            )}
           </div>
 
           {/* Command bar + scroll-to-bottom */}
@@ -508,6 +550,8 @@ function Chat({ onReset }: { onReset: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
