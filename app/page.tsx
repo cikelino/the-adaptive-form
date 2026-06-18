@@ -268,7 +268,7 @@ function Chat({ onReset }: { onReset: () => void }) {
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="mb-6 flex justify-center"
             >
-              <Logo className="h-16 w-auto drop-shadow-[0_0_24px_rgba(45,212,191,0.3)]" />
+              <Logo className="h-24 w-auto drop-shadow-[0_0_32px_rgba(45,212,191,0.35)]" />
             </motion.div>
             <p className="mb-4 font-mono text-xs uppercase tracking-[0.25em] text-teal-400/80">
               Generative UI · Live demo
